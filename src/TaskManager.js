@@ -1,16 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { db } from './firebase';
-import { collection, addDoc, onSnapshot, query, where, updateDoc, doc } from "firebase/firestore";
+import { collection, addDoc, onSnapshot, updateDoc, doc } from "firebase/firestore";
 import { auth } from "./firebase";
 
 function TaskManager() {
   const [tasks, setTasks] = useState([]);
   const [taskTitle, setTaskTitle] = useState('');
   const [taskDifficulty, setTaskDifficulty] = useState('');
+  const [showOnlyMyTasks, setShowOnlyMyTasks] = useState(false);
 
   useEffect(() => {
-    const q = query(collection(db, "tasks"), where("assignedTo", "==", auth.currentUser.uid));
-    const unsubscribe = onSnapshot(q, (querySnapshot) => {
+    const unsubscribe = onSnapshot(collection(db, "tasks"), (querySnapshot) => {
       const tasksArray = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       setTasks(tasksArray);
     });
@@ -22,12 +22,19 @@ function TaskManager() {
     await addDoc(collection(db, "tasks"), {
       title: taskTitle,
       difficulty: taskDifficulty,
-      assignedTo: auth.currentUser.uid,
+      assignedTo: "", // Dejar en blanco o asignar más tarde
       completed: false
     });
 
     setTaskTitle('');
     setTaskDifficulty('');
+  };
+
+  const assignTaskToUser = async (taskId) => {
+    const taskRef = doc(db, "tasks", taskId);
+    await updateDoc(taskRef, {
+      assignedTo: auth.currentUser.uid
+    });
   };
 
   const markTaskAsCompleted = async (taskId) => {
@@ -37,14 +44,30 @@ function TaskManager() {
     });
   };
 
+  const filteredTasks = showOnlyMyTasks
+    ? tasks.filter(task => task.assignedTo === auth.currentUser.uid)
+    : tasks;
+
   return (
     <div>
-      <h2>My Tasks</h2>
+      <h2>Tasks</h2>
+      <div>
+        <label>
+          <input
+            type="checkbox"
+            checked={showOnlyMyTasks}
+            onChange={() => setShowOnlyMyTasks(!showOnlyMyTasks)}
+          />
+          Show Only My Tasks
+        </label>
+      </div>
       <ul>
-        {tasks.map(task => (
+        {filteredTasks.map(task => (
           <li key={task.id}>
-            {task.title} (Difficulty: {task.difficulty})
+            {task.title} (Difficulty: {task.difficulty}) - 
+            {task.assignedTo === auth.currentUser.uid ? ' Assigned to You' : ' Not Assigned'} 
             {task.completed ? ' - Completed' : <button onClick={() => markTaskAsCompleted(task.id)}>Mark as Completed</button>}
+            {!task.assignedTo && <button onClick={() => assignTaskToUser(task.id)}>Assign to Me</button>}
           </li>
         ))}
       </ul>
