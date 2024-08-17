@@ -1,18 +1,17 @@
 import React, { useState } from 'react';
-import { signInWithEmailAndPassword } from "firebase/auth";
-import { auth } from "./firebase";
+import { loginUser } from './authService';
 
-function LoginForm({ onLogin }) {
+function LoginForm() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await signInWithEmailAndPassword(auth, email, password);
-      onLogin();  // Llama al callback para actualizar el estado en App.js
+      await loginUser(email, password);
+      console.log("Inicio de sesión exitoso");
     } catch (error) {
-      console.error("Error signing in with password and email", error);
+      console.error("Error en el inicio de sesión:", error);
     }
   };
 
@@ -23,12 +22,14 @@ function LoginForm({ onLogin }) {
         value={email}
         onChange={(e) => setEmail(e.target.value)}
         placeholder="Email"
+        required
       />
       <input
         type="password"
         value={password}
         onChange={(e) => setPassword(e.target.value)}
         placeholder="Password"
+        required
       />
       <button type="submit">Login</button>
     </form>
