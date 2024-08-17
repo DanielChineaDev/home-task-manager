@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { db } from './firebase';
-import { collection, addDoc, onSnapshot, updateDoc, doc, getDocs } from "firebase/firestore"; // Agregar onSnapshot y getDocs
+import { collection, addDoc, onSnapshot, updateDoc, doc, getDocs, getDoc } from "firebase/firestore";
 import { auth } from "./firebase";
 import Modal from 'react-modal';
 
@@ -8,11 +8,14 @@ Modal.setAppElement('#root'); // Necesario para accesibilidad
 
 function TaskManager() {
   const [tasks, setTasks] = useState([]);
-  const [taskTitle, setTaskTitle] = useState(''); // Definir taskTitle y setTaskTitle
-  const [taskDifficulty, setTaskDifficulty] = useState(''); // Definir taskDifficulty y setTaskDifficulty
+  const [taskTitle, setTaskTitle] = useState('');
+  const [taskDifficulty, setTaskDifficulty] = useState('');
+  const [assignedUser, setAssignedUser] = useState('');
   const [showOnlyMyTasks, setShowOnlyMyTasks] = useState(false);
   const [modalIsOpen, setModalIsOpen] = useState(false);
   const [users, setUsers] = useState([]);
+  const [difficultyPoints, setDifficultyPoints] = useState({});
+  const [progress, setProgress] = useState({});
 
   useEffect(() => {
     const unsubscribe = onSnapshot(collection(db, "tasks"), (querySnapshot) => {
@@ -24,7 +27,6 @@ function TaskManager() {
   }, []);
 
   useEffect(() => {
-    // Suponiendo que tienes una colección de usuarios en la base de datos
     const fetchUsers = async () => {
       const usersSnapshot = await getDocs(collection(db, "users"));
       const usersArray = usersSnapshot.docs.map(doc => ({ uid: doc.id, ...doc.data() }));
@@ -34,84 +36,115 @@ function TaskManager() {
     fetchUsers();
   }, []);
 
-  const openModal = () => setModalIsOpen(true);
-  const closeModal = () => setModalIsOpen(false);
+  useEffect(() => {
+    const points = users.reduce((acc, user) => {
+      acc[user.uid] = tasks
+        .filter(task => task.assignedTo === user.uid)
+        .reduce((sum, task) => sum + parseInt(task.difficulty, 10), 0);
+      return acc;
+    }, {});
+    setDifficultyPoints(points);
 
-  const addTask = async () => { // Definir la función addTask
-    if (!taskTitle || !taskDifficulty) {
+    const progressData = users.reduce((acc, user) => {
+      const userTasks = tasks.filter(task => task.assignedTo === user.uid);
+      const completedTasks = userTasks.filter(task => task.completed).length;
+      const progress = userTasks.length > 0 ? (completedTasks / userTasks.length) * 100 : 0;
+      acc[user.uid] = progress;
+      return acc;
+    }, {});
+    setProgress(progressData);
+  }, [tasks, users]);
+
+  const openModal = () => setModalIsOpen(true);
+  const closeModal = () => {
+    setModalIsOpen(false);
+    setTaskTitle('');
+    setTaskDifficulty('');
+    setAssignedUser('');
+  };
+
+  const addTask = async () => {
+    if (!taskTitle || !taskDifficulty || !assignedUser) {
       alert("Please fill out all required fields.");
       return;
     }
 
+    const assignedUserData = users.find(user => user.uid === assignedUser);
+
     await addDoc(collection(db, "tasks"), {
       title: taskTitle,
       difficulty: taskDifficulty,
-      assignedTo: "", // Dejar en blanco o asignar más tarde
-      assignedToName: "", // Dejar en blanco o asignar más tarde
+      assignedTo: assignedUserData.uid,
+      assignedToName: assignedUserData.name,
       completed: false,
       createdAt: new Date(),
       createdBy: auth.currentUser.uid,
-      createdByName: auth.currentUser.email // Guardar el email del creador
+      createdByName: auth.currentUser.email
     });
 
-    setTaskTitle('');
-    setTaskDifficulty('');
-    closeModal(); // Cerrar el modal después de agregar la tarea
+    closeModal();
   };
 
-  const assignTaskToUser = async (taskId) => { // Definir la función assignTaskToUser
+  const assignTaskToUser = async (taskId, userId, userName) => {
     const taskRef = doc(db, "tasks", taskId);
     await updateDoc(taskRef, {
-      assignedTo: auth.currentUser.uid,
-      assignedToName: auth.currentUser.email // O usa displayName si lo tienes disponible
+      assignedTo: userId,
+      assignedToName: userName
     });
   };
 
-  const markTaskAsCompleted = async (taskId, assignedTo) => { // Definir la función markTaskAsCompleted
-    if (assignedTo !== auth.currentUser.uid) {
-      alert("You can only complete tasks assigned to you.");
-      return;
+  const markTaskAsCompleted = async (taskId, completed, difficulty, assignedTo) => {
+    const taskRef = doc(db, "tasks", taskId);
+    await updateDoc(taskRef, { completed: completed });
+
+    if (completed) {
+      // Incrementar puntos totales del usuario
+      const userRef = doc(db, "users", assignedTo);
+      const userDoc = await getDoc(userRef);
+      const currentPoints = userDoc.data().totalPoints || 0;
+      await updateDoc(userRef, {
+        totalPoints: currentPoints + parseInt(difficulty, 10)
+      });
     }
-
-    const taskRef = doc(db, "tasks", taskId);
-    await updateDoc(taskRef, {
-      completed: true
-    });
   };
 
   const reassignTasks = async () => {
-    const unassignedTasks = tasks.filter(task => !task.assignedTo && !task.completed);
-    
-    // Obtener a los dos usuarios (aquí asumimos que hay exactamente dos usuarios)
-    if (users.length !== 2) {
-      alert("Debe haber exactamente dos usuarios para reasignar las tareas.");
+    if (users.length < 2) {
+      alert("Debe haber al menos dos usuarios para reasignar las tareas.");
       return;
     }
 
     let user1Tasks = [];
     let user2Tasks = [];
-
     let user1Difficulty = 0;
     let user2Difficulty = 0;
 
-    // Asignar las tareas equitativamente según la dificultad
-    for (const task of unassignedTasks) {
+    // Reiniciar todas las tareas a "not completed"
+    for (const task of tasks) {
+      await updateDoc(doc(db, "tasks", task.id), {
+        completed: false,
+        assignedTo: "", // Opcional: Reasignar desde cero
+        assignedToName: ""
+      });
+    }
+
+    // Asignar tareas de nuevo de manera equitativa
+    for (const task of tasks) {
       if (user1Difficulty <= user2Difficulty) {
         user1Tasks.push(task);
-        user1Difficulty += task.difficulty;
+        user1Difficulty += parseInt(task.difficulty, 10);
       } else {
         user2Tasks.push(task);
-        user2Difficulty += task.difficulty;
+        user2Difficulty += parseInt(task.difficulty, 10);
       }
     }
 
-    // Actualizar las tareas en Firestore
     const batchUpdate = async (userTasks, user) => {
       for (const task of userTasks) {
         const taskRef = doc(db, "tasks", task.id);
         await updateDoc(taskRef, {
           assignedTo: user.uid,
-          assignedToName: user.email // O usa displayName si está disponible
+          assignedToName: user.name
         });
       }
     };
@@ -119,12 +152,33 @@ function TaskManager() {
     await batchUpdate(user1Tasks, users[0]);
     await batchUpdate(user2Tasks, users[1]);
 
-    alert("Tareas reasignadas equitativamente.");
+    alert("Tareas reasignadas equitativamente y restablecidas a 'not completed'.");
   };
+
+  const filteredTasks = tasks.filter(task => {
+    return !showOnlyMyTasks || task.assignedTo === auth.currentUser.uid;
+  });
 
   return (
     <div>
-      <h2>Tasks</h2>
+      <h2>Task Manager</h2>
+      <div>
+        <h3>Puntos de dificultad y progreso</h3>
+        <ul>
+          {users.map(user => (
+            <li key={user.uid}>
+              {user.name}: {difficultyPoints[user.uid] || 0} puntos en tareas actuales
+              <div>
+                <p>Total de puntos acumulados: {user.totalPoints || 0}</p>
+                <div style={styles.progressContainer}>
+                  <div style={{ ...styles.progressBar, width: `${progress[user.uid] || 0}%` }}></div>
+                </div>
+                <p>{Math.round(progress[user.uid] || 0)}% completado</p>
+              </div>
+            </li>
+          ))}
+        </ul>
+      </div>
       <div>
         <label>
           <input
@@ -138,18 +192,39 @@ function TaskManager() {
         <button onClick={openModal} style={styles.addButton}>+</button>
       </div>
       <ul>
-        {tasks.map(task => (
+        {filteredTasks.map(task => (
           <li key={task.id}>
             {task.title} (Difficulty: {task.difficulty}) - 
             {task.assignedTo 
-              ? `Assigned to: ${task.assignedToName}` 
-              : 'Not Assigned'} 
+              ? (
+                <>
+                  Assigned to: 
+                  <select
+                    value={task.assignedTo}
+                    onChange={(e) => {
+                      const selectedUser = users.find(user => user.uid === e.target.value);
+                      assignTaskToUser(task.id, selectedUser.uid, selectedUser.name);
+                    }}
+                  >
+                    {users.map(user => (
+                      <option key={user.uid} value={user.uid}>
+                        {user.name}
+                      </option>
+                    ))}
+                  </select>
+                </>
+              )
+              : 'Not Assigned'}
             {task.completed 
-              ? ' - Completed' 
+              ? (
+                <>
+                  - Completed 
+                  <button onClick={() => markTaskAsCompleted(task.id, false, task.difficulty, task.assignedTo)}>Undo</button>
+                </>
+              )
               : task.assignedTo === auth.currentUser.uid 
-                ? <button onClick={() => markTaskAsCompleted(task.id, task.assignedTo)}>Mark as Completed</button>
+                ? <button onClick={() => markTaskAsCompleted(task.id, true, task.difficulty, task.assignedTo)}>Mark as Completed</button>
                 : <span> - Cannot complete, not assigned to you</span>}
-            {!task.assignedTo && <button onClick={() => assignTaskToUser(task.id)}>Assign to Me</button>}
           </li>
         ))}
       </ul>
@@ -180,6 +255,21 @@ function TaskManager() {
               required
             />
           </div>
+          <div>
+            <label>Assign to:</label>
+            <select
+              value={assignedUser}
+              onChange={(e) => setAssignedUser(e.target.value)}
+              required
+            >
+              <option value="">Select User</option>
+              {users.map(user => (
+                <option key={user.uid} value={user.uid}>
+                  {user.name}
+                </option>
+              ))}
+            </select>
+          </div>
           <button type="submit">Add Task</button>
           <button type="button" onClick={closeModal} style={styles.closeButton}>Cancel</button>
         </form>
@@ -188,18 +278,17 @@ function TaskManager() {
   );
 }
 
-const customStyles = {
-  content: {
-    top: '50%',
-    left: '50%',
-    right: 'auto',
-    bottom: 'auto',
-    marginRight: '-50%',
-    transform: 'translate(-50%, -50%)',
-  },
-};
-
 const styles = {
+  progressContainer: {
+    width: '100%',
+    backgroundColor: '#e0e0df',
+    borderRadius: '5px',
+    overflow: 'hidden',
+  },
+  progressBar: {
+    height: '20px',
+    backgroundColor: '#76c7c0',
+  },
   reassignButton: {
     marginLeft: '10px',
     backgroundColor: '#28a745',
@@ -226,6 +315,17 @@ const styles = {
     border: 'none',
     cursor: 'pointer',
   }
+};
+
+const customStyles = {
+  content: {
+    top: '50%',
+    left: '50%',
+    right: 'auto',
+    bottom: 'auto',
+    marginRight: '-50%',
+    transform: 'translate(-50%, -50%)',
+  },
 };
 
 export default TaskManager;
