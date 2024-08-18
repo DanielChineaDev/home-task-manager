@@ -1,0 +1,347 @@
+/* TaskManager.css */
+
+:root {
+  --background-color: #1c1c1c;
+  --banner-background-color: #333; /* Fondo del banner */
+  --banner-text-color: #fff; /* Color del texto del banner */
+  --card-background-color: #2e2e2e;
+  --primary-color: #4caf50; /* Verde */
+  --secondary-color: #ff5722; /* Naranja */
+  --text-color: #f5f5f5;
+  --subtext-color: #b0b0b0;
+  --button-color: #009688; /* Azul-verdoso */
+  --button-hover-color: #00796b;
+  --danger-color: #f44336; /* Rojo */
+  --border-color: #333;
+
+  /* Colores de puntos */
+  --gold-color: #ffd700;
+  --silver-color: #c0c0c0;
+  --bronze-color: #cd7f32;
+}
+
+/* Estilo general */
+body {
+  background-color: var(--background-color);
+  color: var(--text-color);
+  font-family: 'Arial', sans-serif;
+}
+
+.banner {
+  width: 100%;
+  max-height: 200px;
+  overflow: hidden;
+  margin-bottom: 20px;
+}
+
+.banner img {
+  width: 100%;
+  height: auto;
+}
+
+.container {
+  padding: 20px;
+  max-width: 600px;
+  margin: 0 auto;
+  background-color: var(--background-color);
+}
+
+.title {
+  font-size: 24px;
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.section {
+  margin-bottom: 20px;
+}
+
+.subtitle {
+  font-size: 20px;
+  margin-bottom: 10px;
+  color: var(--subtext-color);
+}
+
+.list {
+  list-style-type: none;
+  padding: 0;
+}
+
+.listItem {
+  font-size: 16px;
+  margin-bottom: 10px;
+}
+
+.progressSection {
+  margin-top: 10px;
+}
+
+.progressContainer {
+  width: 100%;
+  background-color: var(--border-color);
+  border-radius: 5px;
+  overflow: hidden;
+  margin-top: 5px;
+}
+
+.progressBar {
+  height: 20px;
+  background-color: var(--primary-color);
+}
+
+.scoreboard {
+  list-style-type: none;
+  padding: 0;
+}
+
+.scoreboardItem {
+  font-size: 18px;
+  margin: 5px 0;
+}
+
+.sortSection {
+  margin-bottom: 10px;
+}
+
+.sortSelect {
+  margin-left: 10px;
+  padding: 5px;
+  border-radius: 5px;
+  border: 1px solid var(--border-color);
+  background-color: var(--card-background-color);
+  color: var(--text-color);
+}
+
+.label {
+  font-size: 16px;
+  color: var(--subtext-color);
+}
+
+.checkbox {
+  margin-right: 10px;
+}
+
+.select {
+  margin-left: 10px;
+  padding: 5px;
+  border-radius: 5px;
+  border: 1px solid var(--border-color);
+  width: 100%;
+  background-color: var(--card-background-color);
+  color: var(--text-color);
+}
+
+.reassignButton {
+  display: block;
+  margin: 10px 0;
+  background-color: var(--button-color);
+  color: white;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  width: 100%;
+}
+
+.reassignButton:hover {
+  background-color: var(--button-hover-color);
+}
+
+.addButton {
+  font-size: 24px;
+  padding: 10px 20px;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  background-color: var(--primary-color);
+  color: white;
+  display: block;
+  margin: 0 auto;
+}
+
+.taskCard {
+  background-color: var(--card-background-color);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  padding: 15px;
+  margin-bottom: 15px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  position: relative;
+}
+
+.taskCard::before {
+  content: '';
+  display: block;
+  width: 100%;
+  height: 8px;
+  position: absolute;
+  top: 0;
+  left: 0;
+  border-top-left-radius: 10px;
+  border-top-right-radius: 10px;
+}
+
+.difficulty-gold.taskCard::before {
+  background-color: var(--gold-color);
+}
+
+.difficulty-silver.taskCard::before {
+  background-color: var(--silver-color);
+}
+
+.difficulty-bronze.taskCard::before {
+  background-color: var(--bronze-color);
+}
+
+.taskHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.taskDifficulty {
+  display: flex;
+  align-items: center;
+  font-size: 14px;
+  font-weight: bold;
+  color: var(--text-color);
+}
+
+.taskDifficulty .points {
+  font-size: 20px;
+  margin-right: 5px;
+}
+
+.difficulty-gold .points {
+  color: var(--gold-color);
+}
+
+.difficulty-silver .points {
+  color: var(--silver-color);
+}
+
+.difficulty-bronze .points {
+  color: var(--bronze-color);
+}
+
+.userInfo {
+  display: flex;
+  align-items: center;
+}
+
+.userPhoto {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  margin-right: 10px;
+}
+
+.userName {
+  font-size: 14px;
+  color: var(--text-color);
+}
+
+.taskIcon {
+  text-align: center;
+  margin-bottom: 10px;
+}
+
+.taskIconImage {
+  width: 50px;
+  height: 50px;
+}
+
+.taskTitle {
+  font-size: 18px;
+  text-align: center;
+  margin-bottom: 10px;
+  color: var(--text-color);
+}
+
+.taskActions {
+  text-align: center;
+}
+
+.taskUrl {
+  display: block;
+  margin-bottom: 10px;
+  color: var(--primary-color);
+  text-decoration: none;
+}
+
+.taskUrl:hover {
+  text-decoration: underline;
+}
+
+.undoButton {
+  background-color: var(--danger-color);
+  color: white;
+  padding: 5px 10px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  margin-left: 10px;
+}
+
+.completeButton {
+  background-color: var(--button-color);
+  color: white;
+  padding: 5px 10px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  margin-left: 10px;
+}
+
+.modalTitle {
+  text-align: center;
+  margin-bottom: 20px;
+  color: var(--text-color);
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+}
+
+.formGroup {
+  margin-bottom: 15px;
+}
+
+.input {
+  padding: 10px;
+  border-radius: 5px;
+  border: 1px solid var(--border-color);
+  width: 100%;
+  background-color: var(--card-background-color);
+  color: var(--text-color);
+}
+
+.submitButton {
+  background-color: var(--primary-color);
+  color: white;
+  padding: 10px;
+  border-radius: 5px;
+  border: none;
+  cursor: pointer;
+  margin-bottom: 10px;
+}
+
+.closeButton {
+  background-color: var(--danger-color);
+  color: white;
+  padding: 10px;
+  border-radius: 5px;
+  border: none;
+  cursor: pointer;
+}
+
+/* Estilo del footer */
+.footer {
+  text-align: center;
+  margin-top: 20px;
+  padding: 10px 0;
+  color: var(--subtext-color);
+  font-size: 14px;
+}

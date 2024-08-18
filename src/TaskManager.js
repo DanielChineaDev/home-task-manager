@@ -3,6 +3,7 @@ import { db } from './firebase';
 import { collection, addDoc, onSnapshot, updateDoc, doc, getDocs, getDoc } from "firebase/firestore";
 import { auth } from "./firebase";
 import Modal from 'react-modal';
+import './TaskManager.css';  // Importa el archivo CSS
 
 Modal.setAppElement('#root'); // Necesario para accesibilidad
 
@@ -11,11 +12,13 @@ function TaskManager() {
   const [taskTitle, setTaskTitle] = useState('');
   const [taskDifficulty, setTaskDifficulty] = useState('');
   const [assignedUser, setAssignedUser] = useState('');
+  const [taskUrl, setTaskUrl] = useState(''); // Nueva variable de estado para la URL
   const [showOnlyMyTasks, setShowOnlyMyTasks] = useState(false);
   const [modalIsOpen, setModalIsOpen] = useState(false);
   const [users, setUsers] = useState([]);
   const [difficultyPoints, setDifficultyPoints] = useState({});
   const [progress, setProgress] = useState({});
+  const [sortOption, setSortOption] = useState('difficulty'); // Orden por defecto: dificultad
 
   useEffect(() => {
     const unsubscribe = onSnapshot(collection(db, "tasks"), (querySnapshot) => {
@@ -61,10 +64,11 @@ function TaskManager() {
     setTaskTitle('');
     setTaskDifficulty('');
     setAssignedUser('');
+    setTaskUrl(''); // Resetea la URL
   };
 
   const addTask = async () => {
-    if (!taskTitle || !taskDifficulty || !assignedUser) {
+    if (!taskTitle || !taskDifficulty || !assignedUser || !taskUrl) {
       alert("Please fill out all required fields.");
       return;
     }
@@ -76,6 +80,8 @@ function TaskManager() {
       difficulty: taskDifficulty,
       assignedTo: assignedUserData.uid,
       assignedToName: assignedUserData.name,
+      assignedToPhoto: assignedUserData.photoURL,
+      url: taskUrl, // Añadir la URL
       completed: false,
       createdAt: new Date(),
       createdBy: auth.currentUser.uid,
@@ -85,11 +91,12 @@ function TaskManager() {
     closeModal();
   };
 
-  const assignTaskToUser = async (taskId, userId, userName) => {
+  const assignTaskToUser = async (taskId, userId, userName, userPhoto) => {
     const taskRef = doc(db, "tasks", taskId);
     await updateDoc(taskRef, {
       assignedTo: userId,
-      assignedToName: userName
+      assignedToName: userName,
+      assignedToPhoto: userPhoto
     });
   };
 
@@ -97,13 +104,17 @@ function TaskManager() {
     const taskRef = doc(db, "tasks", taskId);
     await updateDoc(taskRef, { completed: completed });
 
+    const userRef = doc(db, "users", assignedTo);
+    const userDoc = await getDoc(userRef);
+    const currentPoints = userDoc.data().totalPoints || 0;
+
     if (completed) {
-      // Incrementar puntos totales del usuario
-      const userRef = doc(db, "users", assignedTo);
-      const userDoc = await getDoc(userRef);
-      const currentPoints = userDoc.data().totalPoints || 0;
       await updateDoc(userRef, {
         totalPoints: currentPoints + parseInt(difficulty, 10)
+      });
+    } else {
+      await updateDoc(userRef, {
+        totalPoints: currentPoints - parseInt(difficulty, 10)
       });
     }
   };
@@ -119,16 +130,15 @@ function TaskManager() {
     let user1Difficulty = 0;
     let user2Difficulty = 0;
 
-    // Reiniciar todas las tareas a "not completed"
     for (const task of tasks) {
       await updateDoc(doc(db, "tasks", task.id), {
         completed: false,
-        assignedTo: "", // Opcional: Reasignar desde cero
-        assignedToName: ""
+        assignedTo: "", 
+        assignedToName: "",
+        assignedToPhoto: ""
       });
     }
 
-    // Asignar tareas de nuevo de manera equitativa
     for (const task of tasks) {
       if (user1Difficulty <= user2Difficulty) {
         user1Tasks.push(task);
@@ -144,7 +154,8 @@ function TaskManager() {
         const taskRef = doc(db, "tasks", task.id);
         await updateDoc(taskRef, {
           assignedTo: user.uid,
-          assignedToName: user.name
+          assignedToName: user.name,
+          assignedToPhoto: user.photoURL
         });
       }
     };
@@ -155,167 +166,194 @@ function TaskManager() {
     alert("Tareas reasignadas equitativamente y restablecidas a 'not completed'.");
   };
 
-  const filteredTasks = tasks.filter(task => {
+  const handleSortChange = (e) => {
+    setSortOption(e.target.value);
+  };
+
+  const getDifficultyClass = (difficulty) => {
+    switch (difficulty) {
+      case '3':
+        return 'difficulty-gold';
+      case '2':
+        return 'difficulty-silver';
+      case '1':
+        return 'difficulty-bronze';
+      default:
+        return '';
+    }
+  };
+
+  const sortedTasks = tasks.slice().sort((a, b) => {
+    if (sortOption === 'difficulty') {
+      return b.difficulty - a.difficulty;
+    } else if (sortOption === 'alphabetical') {
+      return a.title.localeCompare(b.title);
+    }
+    return 0;
+  });
+
+  const filteredTasks = sortedTasks.filter(task => {
     return !showOnlyMyTasks || task.assignedTo === auth.currentUser.uid;
   });
 
   return (
     <div>
-      <h2>Task Manager</h2>
-      <div>
-        <h3>Puntos de dificultad y progreso</h3>
-        <ul>
-          {users.map(user => (
-            <li key={user.uid}>
-              {user.name}: {difficultyPoints[user.uid] || 0} puntos en tareas actuales
-              <div>
-                <p>Total de puntos acumulados: {user.totalPoints || 0}</p>
-                <div style={styles.progressContainer}>
-                  <div style={{ ...styles.progressBar, width: `${progress[user.uid] || 0}%` }}></div>
+      <div className="banner">
+        <img src="./public/banner.jpg" alt="Banner" />
+      </div>
+      <div className="container">
+        <h2 className="title">Task Manager</h2>
+        <div className="section">
+          <h3 className="subtitle">Puntos de dificultad y progreso</h3>
+          <ul className="list">
+            {users.map(user => (
+              <li key={user.uid} className="listItem">
+                {user.name}: {difficultyPoints[user.uid] || 0} puntos en tareas actuales
+                <div className="progressSection">
+                  <p>Total de puntos acumulados: {user.totalPoints || 0}</p>
+                  <div className="progressContainer">
+                    <div className="progressBar" style={{ width: `${progress[user.uid] || 0}%` }}></div>
+                  </div>
+                  <p>{Math.round(progress[user.uid] || 0)}% completado</p>
                 </div>
-                <p>{Math.round(progress[user.uid] || 0)}% completado</p>
-              </div>
-            </li>
-          ))}
-        </ul>
-      </div>
-      <div>
-        <label>
-          <input
-            type="checkbox"
-            checked={showOnlyMyTasks}
-            onChange={() => setShowOnlyMyTasks(!showOnlyMyTasks)}
-          />
-          Show Only My Tasks
-        </label>
-        <button onClick={reassignTasks} style={styles.reassignButton}>Reassign Tasks</button>
-        <button onClick={openModal} style={styles.addButton}>+</button>
-      </div>
-      <ul>
-        {filteredTasks.map(task => (
-          <li key={task.id}>
-            {task.title} (Difficulty: {task.difficulty}) - 
-            {task.assignedTo 
-              ? (
-                <>
-                  Assigned to: 
-                  <select
-                    value={task.assignedTo}
-                    onChange={(e) => {
-                      const selectedUser = users.find(user => user.uid === e.target.value);
-                      assignTaskToUser(task.id, selectedUser.uid, selectedUser.name);
-                    }}
-                  >
-                    {users.map(user => (
-                      <option key={user.uid} value={user.uid}>
-                        {user.name}
-                      </option>
-                    ))}
-                  </select>
-                </>
-              )
-              : 'Not Assigned'}
-            {task.completed 
-              ? (
-                <>
-                  - Completed 
-                  <button onClick={() => markTaskAsCompleted(task.id, false, task.difficulty, task.assignedTo)}>Undo</button>
-                </>
-              )
-              : task.assignedTo === auth.currentUser.uid 
-                ? <button onClick={() => markTaskAsCompleted(task.id, true, task.difficulty, task.assignedTo)}>Mark as Completed</button>
-                : <span> - Cannot complete, not assigned to you</span>}
-          </li>
-        ))}
-      </ul>
-
-      <Modal
-        isOpen={modalIsOpen}
-        onRequestClose={closeModal}
-        style={customStyles}
-        contentLabel="Add Task"
-      >
-        <h2>Add a New Task</h2>
-        <form onSubmit={(e) => { e.preventDefault(); addTask(); }}>
-          <div>
-            <label>Task Title:</label>
+              </li>
+            ))}
+          </ul>
+        </div>
+        <div className="section">
+          <h3 className="subtitle">Marcador de puntos totales acumulados</h3>
+          <ul className="scoreboard">
+            {users.map(user => (
+              <li key={user.uid} className="scoreboardItem">
+                <strong>{user.name}:</strong> {user.totalPoints || 0} puntos totales
+              </li>
+            ))}
+          </ul>
+        </div>
+        <div className="section">
+          <label className="label">
             <input
-              type="text"
-              value={taskTitle}
-              onChange={(e) => setTaskTitle(e.target.value)}
-              required
+              type="checkbox"
+              checked={showOnlyMyTasks}
+              onChange={() => setShowOnlyMyTasks(!showOnlyMyTasks)}
+              className="checkbox"
             />
-          </div>
-          <div>
-            <label>Task Difficulty:</label>
-            <input
-              type="number"
-              value={taskDifficulty}
-              onChange={(e) => setTaskDifficulty(e.target.value)}
-              required
-            />
-          </div>
-          <div>
-            <label>Assign to:</label>
-            <select
-              value={assignedUser}
-              onChange={(e) => setAssignedUser(e.target.value)}
-              required
-            >
-              <option value="">Select User</option>
-              {users.map(user => (
-                <option key={user.uid} value={user.uid}>
-                  {user.name}
-                </option>
-              ))}
+            Show Only My Tasks
+          </label>
+          <div className="sortSection">
+            <label className="label">Ordenar por:</label>
+            <select value={sortOption} onChange={handleSortChange} className="sortSelect">
+              <option value="difficulty">Dificultad</option>
+              <option value="alphabetical">Alfabéticamente</option>
             </select>
           </div>
-          <button type="submit">Add Task</button>
-          <button type="button" onClick={closeModal} style={styles.closeButton}>Cancel</button>
-        </form>
-      </Modal>
+          <button onClick={reassignTasks} className="reassignButton">Reassign Tasks</button>
+          <button onClick={openModal} className="addButton">+</button>
+        </div>
+        <div className="cardGrid">
+          {filteredTasks.map(task => (
+            <div key={task.id} className={`taskCard ${getDifficultyClass(task.difficulty)}`}>
+              <div className="taskHeader">
+                <span className={`taskDifficulty ${getDifficultyClass(task.difficulty)}`}>
+                  <span className="points">{task.difficulty}</span> pts
+                </span>
+                {task.assignedTo && (
+                  <div className="userInfo">
+                    <img src={task.assignedToPhoto} alt={task.assignedToName} className="userPhoto" />
+                    <span className="userName">{task.assignedToName}</span>
+                  </div>
+                )}
+              </div>
+              <div className="taskIcon">
+                {/* Aquí puedes agregar un icono representativo de la tarea */}
+                <img src="/path_to_icon/icon.png" alt="Task Icon" className="taskIconImage" />
+              </div>
+              <h3 className="taskTitle">{task.title}</h3>
+              <div className="taskActions">
+                {task.url && (
+                  <a href={task.url} target="_blank" rel="noopener noreferrer" className="taskUrl">
+                    Más información
+                  </a>
+                )}
+                {task.completed 
+                  ? (
+                    <button onClick={() => markTaskAsCompleted(task.id, false, task.difficulty, task.assignedTo)} className="undoButton">Undo</button>
+                  )
+                  : task.assignedTo === auth.currentUser.uid 
+                    ? <button onClick={() => markTaskAsCompleted(task.id, true, task.difficulty, task.assignedTo)} className="completeButton">Complete</button>
+                    : <span> - Not assigned to you</span>}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <Modal
+          isOpen={modalIsOpen}
+          onRequestClose={closeModal}
+          style={customStyles}
+          contentLabel="Add Task"
+        >
+          <h2 className="modalTitle">Add a New Task</h2>
+          <form onSubmit={(e) => { e.preventDefault(); addTask(); }} className="form">
+            <div className="formGroup">
+              <label className="label">Task Title:</label>
+              <input
+                type="text"
+                value={taskTitle}
+                onChange={(e) => setTaskTitle(e.target.value)}
+                required
+                className="input"
+              />
+            </div>
+            <div className="formGroup">
+              <label className="label">Task Difficulty:</label>
+              <input
+                type="number"
+                value={taskDifficulty}
+                onChange={(e) => setTaskDifficulty(e.target.value)}
+                required
+                className="input"
+              />
+            </div>
+            <div className="formGroup">
+              <label className="label">Assign to:</label>
+              <select
+                value={assignedUser}
+                onChange={(e) => setAssignedUser(e.target.value)}
+                required
+                className="select"
+              >
+                <option value="">Select User</option>
+                {users.map(user => (
+                  <option key={user.uid} value={user.uid}>
+                    {user.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="formGroup">
+              <label className="label">URL:</label>
+              <input
+                type="url"
+                value={taskUrl}
+                onChange={(e) => setTaskUrl(e.target.value)}
+                placeholder="https://example.com"
+                className="input"
+              />
+            </div>
+            <button type="submit" className="submitButton">Add Task</button>
+            <button type="button" onClick={closeModal} className="closeButton">Cancel</button>
+          </form>
+        </Modal>
+
+        {/* Footer */}
+        <footer className="footer">
+          Made with <span role="img" aria-label="heart">❤️</span>
+        </footer>
+      </div>
     </div>
   );
 }
-
-const styles = {
-  progressContainer: {
-    width: '100%',
-    backgroundColor: '#e0e0df',
-    borderRadius: '5px',
-    overflow: 'hidden',
-  },
-  progressBar: {
-    height: '20px',
-    backgroundColor: '#76c7c0',
-  },
-  reassignButton: {
-    marginLeft: '10px',
-    backgroundColor: '#28a745',
-    color: 'white',
-    padding: '10px 20px',
-    border: 'none',
-    borderRadius: '5px',
-    cursor: 'pointer',
-  },
-  addButton: {
-    fontSize: '24px',
-    padding: '10px 20px',
-    borderRadius: '50%',
-    border: 'none',
-    cursor: 'pointer',
-    backgroundColor: '#007bff',
-    color: 'white',
-  },
-  closeButton: {
-    marginLeft: '10px',
-    backgroundColor: '#ff4d4d',
-    color: 'white',
-    padding: '5px 10px',
-    border: 'none',
-    cursor: 'pointer',
-  }
-};
 
 const customStyles = {
   content: {
@@ -325,6 +363,8 @@ const customStyles = {
     bottom: 'auto',
     marginRight: '-50%',
     transform: 'translate(-50%, -50%)',
+    width: '90%',
+    maxWidth: '500px',
   },
 };
 
