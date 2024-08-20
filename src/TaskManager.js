@@ -3,7 +3,7 @@ import { db } from './firebase';
 import { collection, addDoc, onSnapshot, updateDoc, doc, getDocs, getDoc } from "firebase/firestore";
 import { auth } from "./firebase";
 import Modal from 'react-modal';
-import './TaskManager.css';  // Importa el archivo CSS
+import './TaskManager.css';  // Importa el archivo CSS principal
 
 Modal.setAppElement('#root'); // Necesario para accesibilidad
 
@@ -12,13 +12,15 @@ function TaskManager() {
   const [taskTitle, setTaskTitle] = useState('');
   const [taskDifficulty, setTaskDifficulty] = useState('');
   const [assignedUser, setAssignedUser] = useState('');
-  const [taskUrl, setTaskUrl] = useState(''); // Nueva variable de estado para la URL
+  const [taskUrl, setTaskUrl] = useState('');
+  const [taskImage, setTaskImage] = useState('');
   const [showOnlyMyTasks, setShowOnlyMyTasks] = useState(false);
   const [modalIsOpen, setModalIsOpen] = useState(false);
   const [users, setUsers] = useState([]);
   const [difficultyPoints, setDifficultyPoints] = useState({});
   const [progress, setProgress] = useState({});
-  const [sortOption, setSortOption] = useState('difficulty'); // Orden por defecto: dificultad
+  const [sortOption, setSortOption] = useState('difficulty');
+  const [errorMessage, setErrorMessage] = useState(''); // Estado para mostrar mensajes de error
 
   useEffect(() => {
     const unsubscribe = onSnapshot(collection(db, "tasks"), (querySnapshot) => {
@@ -64,11 +66,12 @@ function TaskManager() {
     setTaskTitle('');
     setTaskDifficulty('');
     setAssignedUser('');
-    setTaskUrl(''); // Resetea la URL
+    setTaskUrl('');
+    setTaskImage('');
   };
 
   const addTask = async () => {
-    if (!taskTitle || !taskDifficulty || !assignedUser || !taskUrl) {
+    if (!taskTitle || !taskDifficulty || !assignedUser || !taskUrl || !taskImage) {
       alert("Please fill out all required fields.");
       return;
     }
@@ -81,7 +84,8 @@ function TaskManager() {
       assignedTo: assignedUserData.uid,
       assignedToName: assignedUserData.name,
       assignedToPhoto: assignedUserData.photoURL,
-      url: taskUrl, // Añadir la URL
+      url: taskUrl,
+      imageUrl: taskImage,
       completed: false,
       createdAt: new Date(),
       createdBy: auth.currentUser.uid,
@@ -98,6 +102,15 @@ function TaskManager() {
       assignedToName: userName,
       assignedToPhoto: userPhoto
     });
+  };
+
+  const handleTaskClick = async (task) => {
+    if (task.assignedTo === auth.currentUser.uid) {
+      await markTaskAsCompleted(task.id, !task.completed, task.difficulty, task.assignedTo);
+    } else {
+      setErrorMessage('No puede completar una tarea que no está asignada a usted.');
+      setTimeout(() => setErrorMessage(''), 3000); // Oculta el mensaje de error después de 3 segundos
+    }
   };
 
   const markTaskAsCompleted = async (taskId, completed, difficulty, assignedTo) => {
@@ -198,9 +211,6 @@ function TaskManager() {
 
   return (
     <div>
-      <div className="banner">
-        <img src="./public/banner.jpg" alt="Banner" />
-      </div>
       <div className="container">
         <h2 className="title">Task Manager</h2>
         <div className="section">
@@ -250,9 +260,19 @@ function TaskManager() {
           <button onClick={reassignTasks} className="reassignButton">Reassign Tasks</button>
           <button onClick={openModal} className="addButton">+</button>
         </div>
+        {errorMessage && (
+          <div className="errorMessage">
+            <span role="img" aria-label="error">❌</span> {errorMessage}
+          </div>
+        )}
         <div className="cardGrid">
           {filteredTasks.map(task => (
-            <div key={task.id} className={`taskCard ${getDifficultyClass(task.difficulty)}`}>
+            <div
+              key={task.id}
+              className={`taskCard ${getDifficultyClass(task.difficulty)} ${task.completed ? 'completed' : 'inProgress'} ${task.assignedTo !== auth.currentUser.uid ? 'notAssigned' : ''}`}
+              style={{ backgroundImage: `url(${task.imageUrl})`, backgroundSize: 'cover', backgroundPosition: 'center', backgroundBlendMode: 'overlay' }}
+              onClick={() => handleTaskClick(task)}
+            >
               <div className="taskHeader">
                 <span className={`taskDifficulty ${getDifficultyClass(task.difficulty)}`}>
                   <span className="points">{task.difficulty}</span> pts
@@ -260,29 +280,32 @@ function TaskManager() {
                 {task.assignedTo && (
                   <div className="userInfo">
                     <img src={task.assignedToPhoto} alt={task.assignedToName} className="userPhoto" />
-                    <span className="userName">{task.assignedToName}</span>
+                    <select
+                      className="userSelect"
+                      value={task.assignedTo}
+                      onChange={(e) => {
+                        const selectedUser = users.find(user => user.uid === e.target.value);
+                        assignTaskToUser(task.id, selectedUser.uid, selectedUser.name, selectedUser.photoURL);
+                      }}
+                      onClick={(e) => e.stopPropagation()} // Evitar que se complete la tarea al cambiar el usuario
+                    >
+                      {users.map(user => (
+                        <option key={user.uid} value={user.uid}>
+                          {user.name}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                 )}
               </div>
-              <div className="taskIcon">
-                {/* Aquí puedes agregar un icono representativo de la tarea */}
-                <img src="/path_to_icon/icon.png" alt="Task Icon" className="taskIconImage" />
-              </div>
               <h3 className="taskTitle">{task.title}</h3>
-              <div className="taskActions">
-                {task.url && (
-                  <a href={task.url} target="_blank" rel="noopener noreferrer" className="taskUrl">
-                    Más información
-                  </a>
-                )}
-                {task.completed 
-                  ? (
-                    <button onClick={() => markTaskAsCompleted(task.id, false, task.difficulty, task.assignedTo)} className="undoButton">Undo</button>
-                  )
-                  : task.assignedTo === auth.currentUser.uid 
-                    ? <button onClick={() => markTaskAsCompleted(task.id, true, task.difficulty, task.assignedTo)} className="completeButton">Complete</button>
-                    : <span> - Not assigned to you</span>}
-              </div>
+              {task.completed && <div className="taskCompletedLabel">Completada</div>}
+              {!task.completed && task.assignedTo === auth.currentUser.uid && (
+                <div className="taskInProgressLabel">Tarea en proceso</div>
+              )}
+              {task.assignedTo !== auth.currentUser.uid && !task.completed && (
+                <div className="taskNotAssignedLabel">No asignada a usted</div>
+              )}
             </div>
           ))}
         </div>
@@ -338,6 +361,16 @@ function TaskManager() {
                 value={taskUrl}
                 onChange={(e) => setTaskUrl(e.target.value)}
                 placeholder="https://example.com"
+                className="input"
+              />
+            </div>
+            <div className="formGroup">
+              <label className="label">Image URL:</label>
+              <input
+                type="url"
+                value={taskImage}
+                onChange={(e) => setTaskImage(e.target.value)}
+                placeholder="https://example.com/image.jpg"
                 className="input"
               />
             </div>

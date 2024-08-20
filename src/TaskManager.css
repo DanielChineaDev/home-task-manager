@@ -1,17 +1,18 @@
 /* TaskManager.css */
 
+/* Variables de colores y estilos generales */
 :root {
   --background-color: #1c1c1c;
-  --banner-background-color: #333; /* Fondo del banner */
-  --banner-text-color: #fff; /* Color del texto del banner */
+  --banner-background-color: #333; 
+  --banner-text-color: #fff; 
   --card-background-color: #2e2e2e;
-  --primary-color: #4caf50; /* Verde */
-  --secondary-color: #ff5722; /* Naranja */
+  --primary-color: #4caf50; 
+  --secondary-color: #ff5722; 
   --text-color: #f5f5f5;
   --subtext-color: #b0b0b0;
-  --button-color: #009688; /* Azul-verdoso */
+  --button-color: #009688;
   --button-hover-color: #00796b;
-  --danger-color: #f44336; /* Rojo */
+  --danger-color: #f44336; 
   --border-color: #333;
 
   /* Colores de puntos */
@@ -27,6 +28,7 @@ body {
   font-family: 'Arial', sans-serif;
 }
 
+/* Estilos para el banner */
 .banner {
   width: 100%;
   max-height: 200px;
@@ -39,6 +41,7 @@ body {
   height: auto;
 }
 
+/* Contenedor principal */
 .container {
   padding: 20px;
   max-width: 600px;
@@ -52,6 +55,7 @@ body {
   text-align: center;
 }
 
+/* Secciones */
 .section {
   margin-bottom: 20px;
 }
@@ -62,6 +66,7 @@ body {
   color: var(--subtext-color);
 }
 
+/* Listas */
 .list {
   list-style-type: none;
   padding: 0;
@@ -89,6 +94,7 @@ body {
   background-color: var(--primary-color);
 }
 
+/* Marcadores */
 .scoreboard {
   list-style-type: none;
   padding: 0;
@@ -99,6 +105,7 @@ body {
   margin: 5px 0;
 }
 
+/* Ordenar tareas */
 .sortSection {
   margin-bottom: 10px;
 }
@@ -112,6 +119,7 @@ body {
   color: var(--text-color);
 }
 
+/* Etiquetas */
 .label {
   font-size: 16px;
   color: var(--subtext-color);
@@ -131,6 +139,7 @@ body {
   color: var(--text-color);
 }
 
+/* Botones */
 .reassignButton {
   display: block;
   margin: 10px 0;
@@ -159,14 +168,21 @@ body {
   margin: 0 auto;
 }
 
+/* Tarjetas de tarea */
 .taskCard {
   background-color: var(--card-background-color);
+  background-size: cover;
+  background-position: center;
   border: 1px solid var(--border-color);
   border-radius: 10px;
   padding: 15px;
   margin-bottom: 15px;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
   position: relative;
+  color: var(--text-color);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
 }
 
 .taskCard::before {
@@ -179,6 +195,7 @@ body {
   left: 0;
   border-top-left-radius: 10px;
   border-top-right-radius: 10px;
+  opacity: 0.8;
 }
 
 .difficulty-gold.taskCard::before {
@@ -193,6 +210,15 @@ body {
   background-color: var(--bronze-color);
 }
 
+.taskCard.completed {
+  background-color: rgba(76, 175, 80, 0.3); /* Verde transparente */
+}
+
+.taskCard.notAssigned {
+  background-color: rgba(0, 0, 0, 0.5); /* Gris opaco */
+}
+
+/* Encabezado de la tarjeta */
 .taskHeader {
   display: flex;
   justify-content: space-between;
@@ -237,21 +263,14 @@ body {
   margin-right: 10px;
 }
 
-.userName {
-  font-size: 14px;
+.userSelect {
+  background-color: var(--card-background-color);
   color: var(--text-color);
+  border: 1px solid var(--border-color);
+  border-radius: 5px;
 }
 
-.taskIcon {
-  text-align: center;
-  margin-bottom: 10px;
-}
-
-.taskIconImage {
-  width: 50px;
-  height: 50px;
-}
-
+/* Título de la tarea */
 .taskTitle {
   font-size: 18px;
   text-align: center;
@@ -259,41 +278,48 @@ body {
   color: var(--text-color);
 }
 
-.taskActions {
+/* Etiquetas de estado de la tarea */
+.taskCompletedLabel,
+.taskInProgressLabel,
+.taskNotAssignedLabel {
+  font-size: 14px;
   text-align: center;
+  padding: 5px;
+  border-radius: 5px;
+  margin-top: 10px;
+  background-color: var(--background-color);
+  opacity: 0.9;
 }
 
-.taskUrl {
-  display: block;
-  margin-bottom: 10px;
-  color: var(--primary-color);
-  text-decoration: none;
+.taskCompletedLabel {
+  background-color: var(--primary-color);
 }
 
-.taskUrl:hover {
-  text-decoration: underline;
+.taskInProgressLabel {
+  background-color: var(--secondary-color);
 }
 
-.undoButton {
+.taskNotAssignedLabel {
+  background-color: var(--danger-color);
+}
+
+/* Estilo del mensaje de error */
+.errorMessage {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
   background-color: var(--danger-color);
   color: white;
-  padding: 5px 10px;
-  border: none;
-  border-radius: 5px;
-  cursor: pointer;
-  margin-left: 10px;
+  padding: 10px 20px;
+  border-radius: 25px;
+  display: flex;
+  align-items: center;
+  font-size: 16px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
-.completeButton {
-  background-color: var(--button-color);
-  color: white;
-  padding: 5px 10px;
-  border: none;
-  border-radius: 5px;
-  cursor: pointer;
-  margin-left: 10px;
-}
-
+/* Estilo del modal */
 .modalTitle {
   text-align: center;
   margin-bottom: 20px;

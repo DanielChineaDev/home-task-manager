@@ -5,6 +5,7 @@ import { doc, getDoc } from "firebase/firestore";
 import LoginForm from './LoginForm';
 import PopulateTasks from './PopulateTasks';
 import DeleteAllTasks from './DeleteAllTasks';
+import Banner from './Banner';
 import TaskManager from './TaskManager';
 
 function App() {
@@ -47,6 +48,7 @@ function App() {
       {/* <PopulateTasks /> */}
       {user ? (
         <div>
+          <Banner />
           <h1>Welcome, {userData?.name || user.name}!</h1>
           <button onClick={handleLogout}>Logout</button>
           <TaskManager />
