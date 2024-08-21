@@ -140,32 +140,33 @@ body {
 }
 
 /* Botones */
-.reassignButton {
-  display: block;
-  margin: 10px 0;
-  background-color: var(--button-color);
-  color: white;
-  padding: 10px 20px;
-  border: none;
-  border-radius: 5px;
-  cursor: pointer;
-  width: 100%;
+.buttonRow {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 20px;
 }
 
-.reassignButton:hover {
+.squareButton {
+  background-color: var(--button-color);
+  color: white;
+  padding: 10px;
+  border: none;
+  border-radius: 5px;
+  text-align: center;
+  cursor: pointer;
+  font-size: 16px;
+}
+
+.squareButton:hover {
   background-color: var(--button-hover-color);
 }
 
+.reassignButton {
+  width: 78%;
+}
+
 .addButton {
-  font-size: 24px;
-  padding: 10px 20px;
-  border-radius: 50%;
-  border: none;
-  cursor: pointer;
-  background-color: var(--primary-color);
-  color: white;
-  display: block;
-  margin: 0 auto;
+  width: 18%;
 }
 
 /* Tarjetas de tarea */
@@ -329,7 +330,6 @@ body {
   text-align: center;
 }
 
-
 /* Estilo del modal */
 .modalTitle {
   text-align: center;
@@ -355,23 +355,27 @@ body {
   color: var(--text-color);
 }
 
-.submitButton {
-  background-color: var(--primary-color);
+.submitButton,
+.closeButton {
+  width: 48%;
+  background-color: var(--button-color);
   color: white;
   padding: 10px;
-  border-radius: 5px;
   border: none;
+  border-radius: 5px;
   cursor: pointer;
+  text-align: center;
+  font-size: 16px;
   margin-bottom: 10px;
 }
 
 .closeButton {
   background-color: var(--danger-color);
-  color: white;
-  padding: 10px;
-  border-radius: 5px;
-  border: none;
-  cursor: pointer;
+}
+
+.submitButton:hover,
+.closeButton:hover {
+  background-color: var(--button-hover-color);
 }
 
 /* Estilo del footer */

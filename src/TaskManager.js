@@ -257,8 +257,14 @@ function TaskManager() {
               <option value="alphabetical">Alfabéticamente</option>
             </select>
           </div>
-          <button onClick={reassignTasks} className="reassignButton">Reassign Tasks</button>
-          <button onClick={openModal} className="addButton">+</button>
+          <div className="buttonRow">
+            <button onClick={reassignTasks} className="squareButton reassignButton">
+              Reasignar tareas
+            </button>
+            <button onClick={openModal} className="squareButton addButton">
+              Añadir
+            </button>
+          </div>
         </div>
         {errorMessage && (
           <div className="errorMessage">
