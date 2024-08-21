@@ -262,8 +262,8 @@ function TaskManager() {
         </div>
         {errorMessage && (
           <div className="errorMessage">
-            <span role="img" aria-label="error">❌</span> {errorMessage}
-          </div>
+          <span role="text" aria-label="error" >{errorMessage}</span> 
+        </div>
         )}
         <div className="cardGrid">
           {filteredTasks.map(task => (

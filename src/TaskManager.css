@@ -5,7 +5,7 @@
   --background-color: #1c1c1c;
   --banner-background-color: #333; 
   --banner-text-color: #fff; 
-  --card-background-color: #2e2e2e;
+  --card-background-color: #494949;
   --primary-color: #4caf50; 
   --secondary-color: #ff5722; 
   --text-color: #f5f5f5;
@@ -211,11 +211,11 @@ body {
 }
 
 .taskCard.completed {
-  background-color: rgba(76, 175, 80, 0.3); /* Verde transparente */
+  background-color: rgba(0, 59, 2, 0.397); /* Verde transparente */
 }
 
 .taskCard.notAssigned {
-  background-color: rgba(0, 0, 0, 0.5); /* Gris opaco */
+  background-color: rgba(0, 0, 0, 0.842); /* Gris opaco */
 }
 
 /* Encabezado de la tarjeta */
@@ -257,10 +257,11 @@ body {
 }
 
 .userPhoto {
-  width: 30px;
-  height: 30px;
+  width: 35px;
+  height: 35px;
   border-radius: 50%;
-  margin-right: 10px;
+  margin-right: 5px;
+  object-fit: contain;
 }
 
 .userSelect {
@@ -305,6 +306,8 @@ body {
 
 /* Estilo del mensaje de error */
 .errorMessage {
+  width: 85%;
+  max-width: 600px;
   position: fixed;
   bottom: 20px;
   left: 50%;
@@ -312,12 +315,20 @@ body {
   background-color: var(--danger-color);
   color: white;
   padding: 10px 20px;
-  border-radius: 25px;
+  border-radius: 15px;
   display: flex;
   align-items: center;
   font-size: 16px;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  z-index: 10;
 }
+
+.errorMessage span[role="text"] {
+  color: white;
+  padding: 3px;
+  text-align: center;
+}
+
 
 /* Estilo del modal */
 .modalTitle {
